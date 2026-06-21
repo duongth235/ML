@@ -15,16 +15,18 @@ The model generates a new face image that:
 * Transfers the target facial expression
 * Maintains realistic appearance and facial structure
 
-The implementation is trained on the KDEF facial expression dataset and uses:
+The implementation is trained on the **KDEF** facial expression dataset and uses:
 
 * Geometry AutoEncoder
 * FiLM-conditioned Generator
 * Patch-based WGAN-GP Discriminator
 * Landmark-based expression representation
+* ArcFace-based identity evaluation
+* Expression-classifier-based expression evaluation
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```text
 project/
@@ -43,6 +45,22 @@ project/
 │       ├── neutral/
 │       ├── sad/
 │       └── surprise/
+│
+├── validation/
+│   │
+│   ├── validation_generate.py
+│   ├── gen_data/
+│   │
+│   ├── id_validation/
+│   │   ├── build_gallery.py
+│   │   ├── evaluate_id.py
+│   │   ├── gallery_embeddings.npz
+│   │   └── ...
+│   │
+│   └── expression_validation/
+│       ├── classifier_train.py
+│       ├── evaluate_expression.py
+│       └── ...
 │
 └── outputs_gcgan/
     ├── landmarks_front_pose.csv
@@ -90,6 +108,14 @@ where:
 * identity = 000
 * expression = happy/sad/angry
 * pose = frontal
+
+Dataset statistics:
+
+```text
+110 identities
+7 expressions
+770 frontal images
+```
 
 ---
 
@@ -170,7 +196,7 @@ Decoder:
 Outputs:
 
 * latent expression embedding z_g
-* reconstructed geometry ĝ
+* reconstructed geometry ĝ
 
 ---
 
@@ -303,8 +329,6 @@ Generator G
 Discriminator D
 ```
 
----
-
 ### Adversarial Loss
 
 WGAN-GP:
@@ -322,10 +346,8 @@ D(fake)
 -
 D(real)
 +
-10 GP
+10GP
 ```
-
----
 
 ### Image Reconstruction Loss
 
@@ -355,8 +377,6 @@ L_{ir}
 λ_{norm}L_{norm}
 ```
 
----
-
 ### Color Preservation Loss
 
 ```math
@@ -365,41 +385,26 @@ L_{color}
 L1(mean(fake),mean(source))
 ```
 
-Preserves overall illumination and color tone.
-
----
-
 ### Identity Preservation Loss
-
-Self-reconstruction:
-
-```math
-G(source, source_geometry)
-≈ source
-```
-
-Loss:
 
 ```math
 L_{id}
 =
-L1(fake_self, source)
+L1(fake_{self}, source)
 ```
-
----
 
 ### Final Generator Loss
 
 ```math
 L_G
 =
-λ_ir L_ir
+λ_{ir}L_{ir}
 +
-λ_adv L_adv
+λ_{adv}L_{adv}
 +
-λ_color L_color
+λ_{color}L_{color}
 +
-λ_id L_id
+λ_{id}L_{id}
 ```
 
 ---
@@ -472,14 +477,6 @@ Random expression transfer:
 python generate.py
 ```
 
-Specific source and target:
-
-```bash
-python generate.py \
-    --source path/to/source.jpg \
-    --target path/to/target.jpg
-```
-
 Result:
 
 ```text
@@ -491,6 +488,160 @@ saved to:
 ```text
 outputs_gcgan/generated_result.jpg
 ```
+
+---
+
+# Validation and Evaluation
+
+The project includes a validation pipeline for evaluating both identity preservation and expression transfer.
+
+Generated validation images:
+
+```text
+validation/gen_data/
+```
+
+Filename format:
+
+```text
+sourceID_expression_index.png
+```
+
+Example:
+
+```text
+12_happy_003.png
+```
+
+---
+
+## Generate Validation Samples
+
+```bash
+python validation/validation_generate.py
+```
+
+Generates:
+
+```text
+30 samples per expression
+210 generated images total
+```
+
+---
+
+## Identity Evaluation
+
+### Build ArcFace Gallery
+
+```bash
+python validation/id_validation/build_gallery.py
+```
+
+Creates:
+
+```text
+validation/id_validation/gallery_embeddings.npz
+```
+
+Each identity is represented by the average ArcFace embedding of its seven frontal expression images.
+
+### Evaluate Identity Preservation
+
+```bash
+python validation/id_validation/evaluate_id.py
+```
+
+Metrics:
+
+* Mean ID Cosine Similarity
+* Rank-1 Accuracy
+* Rank-3 Accuracy
+
+Results:
+
+```text
+Mean ID Cosine : 0.6481
+Rank-1 Accuracy: 92.86%
+Rank-3 Accuracy: 100.00%
+```
+
+---
+
+## Expression Classifier Training
+
+Train a classifier used only for evaluation.
+
+```bash
+python validation/expression_validation/classifier_train.py
+```
+
+Model:
+
+```text
+ResNet18
+ImageNet Pretrained
+7 Expression Classes
+```
+
+Checkpoint:
+
+```text
+validation/expression_validation/expression_classifier_best.pth
+```
+
+Validation performance on real KDEF:
+
+```text
+Validation Accuracy ≈ 94.8%
+Validation Macro F1 ≈ 94.7%
+```
+
+---
+
+## Expression Evaluation
+
+Evaluate generated images:
+
+```bash
+python validation/expression_validation/evaluate_expression.py
+```
+
+Metrics:
+
+* Expression Accuracy
+* Expression Macro F1
+* Per-Class Accuracy
+* Confusion Matrix
+
+Results:
+
+```text
+Expression Accuracy : 66.19%
+Expression Macro F1 : 63.70%
+```
+
+Generated files:
+
+```text
+validation/expression_validation/expression_eval_results.csv
+validation/expression_validation/expression_confusion_matrix.csv
+validation/expression_validation/expression_per_class_accuracy.csv
+```
+
+---
+
+# Evaluation Summary
+
+| Category   | Metric          | Value   |
+| ---------- | --------------- | ------- |
+| Identity   | Mean ID Cosine  | 0.6481  |
+| Identity   | Rank-1 Accuracy | 92.86%  |
+| Identity   | Rank-3 Accuracy | 100.00% |
+| Expression | Accuracy        | 66.19%  |
+| Expression | Macro F1        | 63.70%  |
+
+The model preserves identity effectively while expression transfer remains more challenging, particularly for subtle expressions such as `sad` and `neutral`.
 
 ---
 
@@ -521,24 +672,22 @@ Expression: Happy
 
 # Future Improvements
 
-Potential upgrades:
-
-### Geometry
+## Geometry
 
 * MediaPipe FaceMesh (478 landmarks)
 * 3D landmarks
 
-### Identity
+## Identity
 
-* ArcFace embedding
-* InsightFace identity loss
+* ArcFace identity loss
+* InsightFace identity encoder
 
-### Generator
+## Generator
 
 * Cross-Attention conditioning
 * Style-based decoder
 
-### Diffusion Models
+## Diffusion Models
 
 Replace GAN with:
 
@@ -547,21 +696,17 @@ Replace GAN with:
 * Conditional Flow Matching
 * Rectified Flow
 
-for higher fidelity expression transfer.
+for higher-fidelity expression transfer.
 
 ---
 
 # References
 
 1. GC-GAN: Geometry-Contrastive GAN for Facial Expression Transfer
-
 2. KDEF Dataset
-
 3. FiLM: Feature-wise Linear Modulation
-
 4. WGAN-GP
-
 5. U-Net
-
 6. Spatial Transformer Networks
-# ML
+7. ArcFace
+8. InsightFace
