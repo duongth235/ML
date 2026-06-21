@@ -1,0 +1,13 @@
+
+========== Expression Evaluation ==========
+num_images              : 210
+num_valid_eval           : 210
+
+expression_accuracy      : 0.6619
+expression_macro_f1      : 0.6370
+
+classes                  : ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
+
+saved csv                : /Users/tranhuyduong/20252/MachineLearning/Project/GCGAN/validation/expression_validation/expression_eval_results.csv
+confusion matrix          : /Users/tranhuyduong/20252/MachineLearning/Project/GCGAN/validation/expression_validation/expression_confusion_matrix.csv
+per-class metrics         : /Users/tranhuyduong/20252/MachineLearning/Project/GCGAN/validation/expression_validation/expression_per_class_accuracy.csv

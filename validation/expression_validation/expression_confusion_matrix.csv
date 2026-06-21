@@ -1,0 +1,8 @@
+,pred_angry,pred_disgust,pred_fear,pred_happy,pred_neutral,pred_sad,pred_surprise
+gt_angry,22,6,2,0,0,0,0
+gt_disgust,7,20,2,0,1,0,0
+gt_fear,0,1,21,1,0,0,7
+gt_happy,0,0,1,29,0,0,0
+gt_neutral,3,0,4,1,17,4,1
+gt_sad,15,3,6,0,3,3,0
+gt_surprise,1,0,2,0,0,0,27

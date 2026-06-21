@@ -1,0 +1,14 @@
+
+========== ID Evaluation ==========
+num_images              : 210
+num_valid_eval           : 210
+valid_rate               : 1.0000
+
+mean_id_cosine           : 0.6481
+rank1_accuracy           : 0.9286
+rank3_accuracy           : 1.0000
+
+gallery identities       : 110
+gallery file             : validation/id_validation/gallery_embeddings.npz
+
+saved csv                : validation/id_validation/id_eval_results.csv
